@@ -7,15 +7,25 @@
     <style>
         body {
             font-family: Arial, sans-serif;
-            text-align: center;
             margin: 0;
             padding: 20px;
+            display: flex;
+            justify-content: space-between;
         }
         h1 {
-            color: #333;
+            text-align: center;
+            width: 100%;
+        }
+        .container {
+            display: flex;
+            justify-content: space-between;
+            width: 100%;
         }
         .player {
-            margin: 20px 0;
+            width: 30%;
+        }
+        .player input {
+            width: 100%;
         }
         .expedition {
             display: flex;
@@ -48,34 +58,53 @@
             margin-top: 20px;
             font-size: 24px;
             font-weight: bold;
+            text-align: right;
+        }
+        .score-section {
+            width: 30%;
+            display: flex;
+            flex-direction: column;
+            align-items: flex-end;
+        }
+        .score-section > div {
+            margin-bottom: 20px;
         }
     </style>
 </head>
 <body>
     <h1>Lost Cities Score Tracker</h1>
-    <div class="player">
-        <input type="text" id="player1" placeholder="Player 1">
-        <div class="expedition" id="player1-expeditions"></div>
-        <div class="result" id="player1-result"></div>
+    <div class="container">
+        <div class="player">
+            <input type="text" id="player1" placeholder="Player 1">
+            <div id="player1-expeditions"></div>
+        </div>
+        <div class="player">
+            <input type="text" id="player2" placeholder="Player 2">
+            <div id="player2-expeditions"></div>
+        </div>
+        <div class="score-section">
+            <div id="round-indicator">Round 1</div>
+            <div id="player1-result" class="result">Total: 0</div>
+            <div id="player2-result" class="result">Total: 0</div>
+            <button onclick="calculateScores()">Calculate Scores</button>
+        </div>
     </div>
-    <div class="player">
-        <input type="text" id="player2" placeholder="Player 2">
-        <div class="expedition" id="player2-expeditions"></div>
-        <div class="result" id="player2-result"></div>
-    </div>
-    <button onclick="calculateScores()">Calculate Scores</button>
 
     <script>
         const colors = ["yellow", "blue", "white", "green", "red", "purple"];
         let players = {
             player1: {
                 expeditions: {},
-                totalScore: 0
+                totalScore: 0,
+                gameScores: []
             },
             player2: {
-                expeditions: {}
+                expeditions: {},
+                totalScore: 0,
+                gameScores: []
             }
         };
+        let round = 1;
 
         colors.forEach(color => {
             players.player1.expeditions[color] = { wagers: 0, cards: [] };
@@ -91,7 +120,7 @@
                     <label>${color}</label>
                     <div>
                         ${[0, 1, 2, 3].map(wager => `
-                            <button class="toggle-button" onclick="toggleWager('${player}', '${color}', ${wager}, this)">${wager} Wagers</button>
+                            <button class="toggle-button ${wager === 0 ? 'active' : ''}" onclick="toggleWager('${player}', '${color}', ${wager}, this)">${wager} Wagers</button>
                         `).join('')}
                     </div>
                     <div>
@@ -138,8 +167,45 @@
                     document.getElementById(`${player}-${color}-score`).innerText = score;
                 });
                 players[player].totalScore = totalScore;
+                players[player].gameScores.push(totalScore);
                 document.getElementById(`${player}-result`).innerText = `Total: ${totalScore}`;
             });
+
+            if (round < 3) {
+                round++;
+                document.getElementById('round-indicator').innerText = `Round ${round}`;
+                resetGame();
+            } else {
+                displayFinalScores();
+            }
+        }
+
+        function resetGame() {
+            colors.forEach(color => {
+                ['player1', 'player2'].forEach(player => {
+                    players[player].expeditions[color] = { wagers: 0, cards: [] };
+                    document.getElementById(`${player}-${color}-score`).innerText = '';
+                    const expeditionDiv = document.getElementById(`${player}-expeditions`);
+                    expeditionDiv.querySelectorAll('.toggle-button').forEach(button => button.classList.remove('active'));
+                    expeditionDiv.querySelectorAll('.toggle-button')[0].classList.add('active');
+                });
+            });
+        }
+
+        function displayFinalScores() {
+            let player1Total = players.player1.gameScores.reduce((a, b) => a + b, 0);
+            let player2Total = players.player2.gameScores.reduce((a, b) => a + b, 0);
+            let winner;
+
+            if (player1Total > player2Total) {
+                winner = document.getElementById('player1').value || 'Player 1';
+            } else if (player2Total > player1Total) {
+                winner = document.getElementById('player2').value || 'Player 2';
+            } else {
+                winner = 'It\'s a tie!';
+            }
+
+            document.getElementById('round-indicator').innerText = `Winner: ${winner}`;
         }
     </script>
 </body>
