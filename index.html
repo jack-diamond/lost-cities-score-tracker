@@ -14,15 +14,35 @@
         h1 {
             color: #333;
         }
-        input[type="number"] {
-            padding: 5px;
-            font-size: 16px;
-            margin: 10px;
+        .player {
+            margin: 20px 0;
         }
-        button {
-            padding: 10px 20px;
+        .expedition {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+        .expedition label {
+            margin-right: 10px;
+        }
+        .expedition div {
+            display: flex;
+            align-items: center;
+            margin: 5px 0;
+        }
+        .expedition button {
+            margin: 0 5px;
+            padding: 5px 10px;
             font-size: 16px;
             cursor: pointer;
+            border: 1px solid #ccc;
+            background-color: white;
+        }
+        .expedition button.active {
+            background-color: #007bff;
+            color: white;
+            border-color: #007bff;
         }
         .result {
             margin-top: 20px;
@@ -33,51 +53,93 @@
 </head>
 <body>
     <h1>Lost Cities Score Tracker</h1>
-    <div>
-        <label for="p1_score">Player 1 Score:</label>
-        <input type="number" id="p1_score">
+    <div class="player">
+        <input type="text" id="player1" placeholder="Player 1">
+        <div class="expedition" id="player1-expeditions"></div>
+        <div class="result" id="player1-result"></div>
     </div>
-    <div>
-        <label for="p2_score">Player 2 Score:</label>
-        <input type="number" id="p2_score">
+    <div class="player">
+        <input type="text" id="player2" placeholder="Player 2">
+        <div class="expedition" id="player2-expeditions"></div>
+        <div class="result" id="player2-result"></div>
     </div>
-    <button onclick="addScore()">Add Score</button>
-    <div id="status"></div>
-    <div class="result" id="result"></div>
+    <button onclick="calculateScores()">Calculate Scores</button>
 
     <script>
-        let scores = { "Player 1": 0, "Player 2": 0 };
-        let round = 1;
+        const colors = ["yellow", "blue", "white", "green", "red", "purple"];
+        let players = {
+            player1: {
+                expeditions: {},
+                totalScore: 0
+            },
+            player2: {
+                expeditions: {}
+            }
+        };
 
-        function addScore() {
-            const p1_score = parseInt(document.getElementById('p1_score').value) || 0;
-            const p2_score = parseInt(document.getElementById('p2_score').value) || 0;
+        colors.forEach(color => {
+            players.player1.expeditions[color] = { wagers: 0, cards: [] };
+            players.player2.expeditions[color] = { wagers: 0, cards: [] };
 
-            scores["Player 1"] += p1_score;
-            scores["Player 2"] += p2_score;
-            round++;
+            document.getElementById('player1-expeditions').innerHTML += createExpeditionInput('player1', color);
+            document.getElementById('player2-expeditions').innerHTML += createExpeditionInput('player2', color);
+        });
 
-            document.getElementById('status').innerText = `Round: ${round}`;
-            document.getElementById('p1_score').value = '';
-            document.getElementById('p2_score').value = '';
+        function createExpeditionInput(player, color) {
+            return `
+                <div class="expedition">
+                    <label>${color}</label>
+                    <div>
+                        ${[0, 1, 2, 3].map(wager => `
+                            <button class="toggle-button" onclick="toggleWager('${player}', '${color}', ${wager}, this)">${wager} Wagers</button>
+                        `).join('')}
+                    </div>
+                    <div>
+                        ${[2, 3, 4, 5, 6, 7, 8, 9, 10].map(card => `
+                            <button class="toggle-button" onclick="toggleCard('${player}', '${color}', ${card}, this)">${card}</button>
+                        `).join('')}
+                    </div>
+                    <div id="${player}-${color}-score" class="score"></div>
+                </div>
+            `;
+        }
 
-            if (round > 3) {
-                declareWinner();
+        function toggleWager(player, color, wager, element) {
+            const expedition = players[player].expeditions[color];
+            expedition.wagers = wager;
+
+            const buttons = element.parentElement.querySelectorAll('button');
+            buttons.forEach(button => button.classList.remove('active'));
+            element.classList.add('active');
+        }
+
+        function toggleCard(player, color, card, element) {
+            const expedition = players[player].expeditions[color];
+            if (expedition.cards.includes(card)) {
+                expedition.cards = expedition.cards.filter(c => c !== card);
+                element.classList.remove('active');
+            } else {
+                expedition.cards.push(card);
+                element.classList.add('active');
             }
         }
 
-        function declareWinner() {
-            let winner;
-            if (scores["Player 1"] > scores["Player 2"]) {
-                winner = "Player 1";
-            } else if (scores["Player 2"] > scores["Player 1"]) {
-                winner = "Player 2";
-            } else {
-                winner = "No one, it's a tie!";
-            }
-
-            document.getElementById('result').innerText = `Winner: ${winner}`;
-            document.querySelector('button').disabled = true;
+        function calculateScores() {
+            ['player1', 'player2'].forEach(player => {
+                let totalScore = 0;
+                colors.forEach(color => {
+                    const expedition = players[player].expeditions[color];
+                    let score = expedition.cards.reduce((a, b) => a + b, 0) - 20;
+                    score *= (expedition.wagers + 1);
+                    if (expedition.cards.length >= 8) {
+                        score += 20;
+                    }
+                    totalScore += score;
+                    document.getElementById(`${player}-${color}-score`).innerText = score;
+                });
+                players[player].totalScore = totalScore;
+                document.getElementById(`${player}-result`).innerText = `Total: ${totalScore}`;
+            });
         }
     </script>
 </body>
